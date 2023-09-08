@@ -1,11 +1,12 @@
 import cv2
 import numpy as np
+import math
 
 # Load the Haar Cascade Classifier for face detection
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-# Load YOLOv4 weights and configuration file
-net = cv2.dnn.readNet("yolov4.weights", "yolov4.cfg")
+# Load YOLOv3 weights and configuration file
+net = cv2.dnn.readNet('yolov3.weights', 'yolov3.cfg')
 
 # Load COCO dataset class names
 with open("coco.names", "r") as f:
@@ -13,6 +14,9 @@ with open("coco.names", "r") as f:
 
 # Open a video capture stream (0 is usually the default camera)
 cap = cv2.VideoCapture(0)
+
+# Define the minimum distance threshold for littering detection (adjust as needed)
+min_distance_threshold = 10 # You can change this value
 
 while True:
     ret, frame = cap.read()
@@ -61,16 +65,28 @@ while True:
         cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
         cv2.putText(frame, "Object in Hand", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
-    # Convert the frame to a blob for YOLOv4 object detection
+    # Calculate the distance between the face and the object in hand
+    if objects_in_hand:
+        object_center_x = x + w // 2
+        object_center_y = y + h // 2
+        face_center_x = x + w // 2
+        face_center_y = y + h // 2
+        distance = math.sqrt((object_center_x - face_center_x)**2 + (object_center_y - face_center_y)**2)
+
+        # Check if the distance crosses the minimum threshold
+        if distance > min_distance_threshold:
+            cv2.putText(frame, "Littering Detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+    # Convert the frame to a blob for YOLOv3 object detection
     blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (416, 416), swapRB=True, crop=False)
 
-    # Set the input to the YOLOv4 neural network
+    # Set the input to the YOLOv3 neural network
     net.setInput(blob)
 
     # Get output layer names
     output_layer_names = net.getUnconnectedOutLayersNames()
 
-    # Forward pass through the YOLOv4 network
+    # Forward pass through the YOLOv3 network
     detections = net.forward(output_layer_names)
 
     for detection in detections:
@@ -98,10 +114,6 @@ while True:
 
     # Display the frame with both face and object detection
     cv2.imshow("Face and Object Detection", frame)
-
-    # Print the objects detected in the hand
-    if objects_in_hand:
-        print("Objects in Hand:", objects_in_hand)
 
     # Press 'q' to exit the loop
     if cv2.waitKey(1) & 0xFF == ord('q'):
