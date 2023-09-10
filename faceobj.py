@@ -14,6 +14,7 @@ def download_yolov3_weights():
         urllib.request.urlretrieve(weights_url, weights_filename)
         print("Download complete.")
 
+
 # Check and download YOLOv3 weights
 download_yolov3_weights()
 
@@ -29,7 +30,7 @@ with open("coco.names", "r") as f:
 
 # Open a video capture stream (0 is usually the default camera)
 cap = cv2.VideoCapture(0)
-
+background  = cv2.imread('background1.jpg')
 # Define the minimum distance threshold for littering detection (adjust as needed)
 min_distance_threshold = 10 # You can change this value
 
@@ -49,6 +50,27 @@ while True:
 
     # Initialize a list to store objects held in hand
     objects_in_hand = []
+
+    fg_bg_subtractor = cv2.createBackgroundSubtractorMOG2()
+
+    fg_mask = fg_bg_subtractor.apply(frame)
+        
+        # Invert the mask to keep the foreground and remove the background
+    fg_mask = cv2.bitwise_not(fg_mask)
+    
+    # Combine the frame and background using the mask
+    result = cv2.bitwise_and(frame, frame, mask=fg_mask)
+    
+    # Resize the background to match the frame size
+    background = cv2.resize(background, (frame.shape[1], frame.shape[0]))
+    
+    # Invert the mask again to keep the background
+    bg_mask = cv2.bitwise_not(fg_mask)
+    
+    # Combine the result and background using the inverted mask
+    final_result = cv2.bitwise_and(result, background, mask=bg_mask)
+
+    frame = final_result
 
     for (x, y, w, h) in faces:
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
