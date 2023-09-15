@@ -14,6 +14,26 @@ def download_yolov3_weights():
         urllib.request.urlretrieve(weights_url, weights_filename)
         print("Download complete.")
 
+#remove bg from frame
+def remove_background_from_frame(frame, background_image):
+    # Ensure that both the frame and background_image have the same dimensions
+    if frame.shape[:2] != background_image.shape[:2]:
+        raise ValueError("Frame and background_image must have the same dimensions.")
+
+    # Create a mask by thresholding the frame
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, mask = cv2.threshold(gray_frame, 1, 255, cv2.THRESH_BINARY)
+
+    # Invert the mask to keep the foreground and remove the background
+    mask_inv = cv2.bitwise_not(mask)
+
+    # Extract the foreground from the frame using the mask
+    foreground = cv2.bitwise_and(frame, frame, mask=mask_inv)
+
+    # Combine the foreground and background_image to get the final result
+    result = cv2.add(foreground, background_image)
+
+    return result
 
 # Check and download YOLOv3 weights
 download_yolov3_weights()
@@ -51,26 +71,7 @@ while True:
     # Initialize a list to store objects held in hand
     objects_in_hand = []
 
-    fg_bg_subtractor = cv2.createBackgroundSubtractorMOG2()
-
-    fg_mask = fg_bg_subtractor.apply(frame)
-        
-        # Invert the mask to keep the foreground and remove the background
-    fg_mask = cv2.bitwise_not(fg_mask)
-    
-    # Combine the frame and background using the mask
-    result = cv2.bitwise_and(frame, frame, mask=fg_mask)
-    
-    # Resize the background to match the frame size
-    background = cv2.resize(background, (frame.shape[1], frame.shape[0]))
-    
-    # Invert the mask again to keep the background
-    bg_mask = cv2.bitwise_not(fg_mask)
-    
-    # Combine the result and background using the inverted mask
-    final_result = cv2.bitwise_and(result, background, mask=bg_mask)
-
-    frame = final_result
+    #frame = remove_background_from_frame(frame, background)
 
     for (x, y, w, h) in faces:
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
@@ -78,7 +79,8 @@ while True:
 
         # Crop the region of interest (ROI) around the face
         roi = frame[y:y + h, x:x + w]
-
+        #show the roi image
+        cv2.imshow('roi', roi)
         # Convert the ROI to grayscale for object detection (you can use a more advanced method)
         gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
@@ -92,8 +94,13 @@ while True:
         for contour in contours:
             x_c, y_c, w_c, h_c = cv2.boundingRect(contour)
 
-            # Check if the object is within the bounds of the face ROI
-            if x_c > x and y_c > y and x_c + w_c < x + w and y_c + h_c < y + h:
+            x_ext = x - 50
+            y_ext = y - 50
+            w_ext = w + 100  # 50 units on both sides
+            h_ext = h + 100  # 50 units on both sides
+
+            # Check if the object is within the extended bounds of the face ROI
+            if x_c > x_ext and y_c > y_ext and x_c + w_c < x_ext + w_ext and y_c + h_c < y_ext + h_ext:
                 objects_in_hand.append(contour)
 
     # Draw rectangles around detected objects (contours) in the hand
@@ -109,7 +116,7 @@ while True:
         face_center_x = x + w // 2
         face_center_y = y + h // 2
         distance = math.sqrt((object_center_x - face_center_x)**2 + (object_center_y - face_center_y)**2)
-
+        print(distance)
         # Check if the distance crosses the minimum threshold
         if distance > min_distance_threshold:
             cv2.putText(frame, "Littering Detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
