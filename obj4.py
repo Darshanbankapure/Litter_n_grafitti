@@ -1,6 +1,21 @@
 import cv2
 import numpy as np
+import os
+import urllib.request
 
+# Function to download YOLOv3 weights file if it's not already present
+def download_yolov3_weights():
+    weights_url = "https://pjreddie.com/media/files/yolov3.weights"
+    weights_filename = "yolov3.weights"
+
+    if not os.path.exists(weights_filename):
+        print(f"Downloading YOLOv3 weights from {weights_url}")
+        urllib.request.urlretrieve(weights_url, weights_filename)
+        print("Download complete.")
+
+
+# Check and download YOLOv3 weights
+download_yolov3_weights()
 # Load YOLOv3 weights and configuration file
 net = cv2.dnn.readNet('yolov3.weights', 'yolov3.cfg')
 

@@ -9,7 +9,7 @@ with open("coco.names", "r") as f:
     classes = f.read().strip().split("\n")
 
 # Load the input image
-image_path = 'hk.jpeg'  # Replace with the path to your input image
+image_path = 'bottle.jpg'  # Replace with the path to your input image
 image = cv2.imread(image_path)
 
 # Get the height and width of the image

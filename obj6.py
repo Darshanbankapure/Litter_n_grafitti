@@ -27,34 +27,37 @@ with open("coco.names", "r") as f:
 # Open a video capture stream (0 is usually the default camera)
 cap = cv2.VideoCapture(0)
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+# Capture a single frame
+ret, frame = cap.read()
 
-    # Get the height and width of the frame
-    height, width = frame.shape[:2]
+# Get the height and width of the frame
+height, width = frame.shape[:2]
 
-    # Convert the frame to a blob for YOLOv3 object detection
-    blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (416, 416), swapRB=True, crop=False)
+# Convert the frame to a blob for YOLOv3 object detection
+blob = cv2.dnn.blobFromImage(frame, 1 / 255.0, (416, 416), swapRB=True, crop=False)
 
-    # Set the input to the YOLOv3 neural network
-    net.setInput(blob)
+# Set the input to the YOLOv3 neural network
+net.setInput(blob)
 
-    # Get output layer names
-    output_layer_names = net.getUnconnectedOutLayersNames()
+# Get output layer names
+output_layer_names = net.getUnconnectedOutLayersNames()
 
-    # Forward pass through the YOLOv3 network
-    detections = net.forward(output_layer_names)
+# Forward pass through the YOLOv3 network
+detections = net.forward(output_layer_names)
 
-    for detection in detections:
-        for obj in detection:
-            scores = obj[5:]
-            class_id = np.argmax(scores)
-            confidence = scores[class_id]
+# Iterate through detections and exclude "person" objects
+for detection in detections:
+    for obj in detection:
+        scores = obj[5:]
+        class_id = np.argmax(scores)
+        confidence = scores[class_id]
 
-            # Check if the confidence threshold is met (adjust as needed)
-            if confidence > 0.5:
+        # Check if the confidence threshold is met (adjust as needed)
+        if confidence > 0.8:
+            class_name = classes[class_id]
+
+            # Exclude objects labeled as "person"
+            if class_name != "person":
                 center_x = int(obj[0] * width)
                 center_y = int(obj[1] * height)
                 w = int(obj[2] * width)
@@ -64,11 +67,11 @@ while True:
                 x = int(center_x - w / 2)
                 y = int(center_y - h / 2)
 
-                label = f"{classes[class_id]} ({confidence:.2f})"
+                label = f"{class_name} ({confidence:.2f})"
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
                 cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-                # Print the coordinates of the center
+               # Print the coordinates of the center
                 print(f"Object: {classes[class_id]}, Confidence: {confidence:.2f}, Center (x, y): ({center_x}, {center_y})")
 
     # Display the frame with object detection
@@ -76,8 +79,8 @@ while True:
 
     # Press 'q' to exit the loop
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.imwrite("detected_objects.jpg", frame)
         break
-
-# Release the video capture and close all OpenCV windows
-cap.release()
-cv2.destroyAllWindows()
+    # Release the video capture and close all OpenCV windows
+    cap.release()
+    cv2.destroyAllWindows()
