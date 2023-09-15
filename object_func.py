@@ -47,9 +47,10 @@ def detect_objects(image_path):
                     center_y = int(obj[1] * height)
 
                 # Append the object center coordinates to the list
-                object_centers.append((center_x, center_y))
+                    object_centers.append((center_x, center_y))
 
     # Return the list of object centers
     return object_centers
 
 ans = detect_objects('hk.jpeg')
+print(ans)
